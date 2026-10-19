@@ -21,7 +21,9 @@ Controlador de rotor de antena com firmware Arduino Uno e interface para Windows
 
 ## Interface Windows
 
-O instalador da versão 1.2.1 destina-se a Windows 10/11 x64 e inclui Python e as bibliotecas necessárias. O instalador pronto é distribuído à parte; o repositório contém os fontes completos e a receita para recriá-lo.
+Baixe `Rotor_PU2PTU_1.2.1_Setup_x64.exe` na página de [Releases](https://github.com/mariopin80/rotor-pu2ptu/releases). O instalador destina-se a Windows 10/11 x64 e inclui Python e as bibliotecas necessárias; não é preciso instalar Python separadamente.
+
+Os arquivos **Source code** da Release contêm os fontes completos da interface Windows, do firmware Arduino e a receita para recriar o instalador.
 
 Para executar pelos fontes, instale Python 3.11 ou 3.12 com Tcl/Tk. Na pasta `Windows`, execute `INSTALAR.bat` e depois `SIMULAR.bat` ou `INICIAR.bat`.
 
