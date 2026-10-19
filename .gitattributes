@@ -1,0 +1,13 @@
+* text=auto
+*.py text eol=lf
+*.ino text eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.nsi text eol=lf
+*.cfg text eol=lf
+*.bat text eol=crlf
+*.png binary
+*.ico binary
+Arduino/**/*.ino -text -whitespace

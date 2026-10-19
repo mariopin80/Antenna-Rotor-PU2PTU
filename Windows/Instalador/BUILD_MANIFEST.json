@@ -1,0 +1,15 @@
+{
+  "installer": "Rotor_PU2PTU_1.2.1_Setup_x64.exe",
+  "sha256": "39073d3edfaeac6e6a0d98dfdab075e80d0f7680fa67ccc112166ed599be5d9a",
+  "size_bytes": 16182516,
+  "runtime": "CPython 3.12.10 Windows x64 + Tcl/Tk oficial",
+  "application_host": "Python/Rotor_PU2PTU.exe",
+  "application_host_sha256": "5c2f537c982fb2ee5afb8664ce6d1854abfa7d2e13728ec38f276abbcb9ef739",
+  "inputs_sha256": {
+    "python-3.12.10-embed-amd64.zip": "4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3",
+    "tcltk.msi": "55c96ffad69b1c834aa52e11b9ce41637a178ba6ad6607e83956044834276e2a",
+    "pyserial-3.5-py2.py3-none-any.whl": "c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0",
+    "geographiclib-2.1-py3-none-any.whl": "e2a873b9b9e7fc38721ad73d5f4e6c9ed140d428a339970f505c07056997d40b",
+    "pillow-12.3.0-cp312-cp312-win_amd64.whl": "a2b55dd6b2a4c4b7d87ffa56bdb33fdc5fdb9a462173861a7bc097f17d91cb09"
+  }
+}

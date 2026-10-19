@@ -1,0 +1,33 @@
+Rotor PU2PTU 1.2.1
+Autor: Mario Pin - PU2PTU
+
+Este instalador inclui componentes redistribuiveis de terceiros:
+
+CPython 3.12.10 Windows x64 - Python Software Foundation License.
+Licenca completa: Python/LICENSE.txt.
+https://www.python.org/ftp/python/3.12.10/
+
+Tcl/Tk e tkinter da mesma distribuicao oficial de CPython.
+Termos adicionais de Tk: lib/tk8.6/license.terms.
+https://www.tcl.tk/software/tcltk/license.html
+
+pySerial 3.5 - BSD. Licenca completa: LICENSE_PYSERIAL.txt.
+GeographicLib Python 2.1 - MIT.
+Pillow 12.3.0 - MIT-CMU e licencas das bibliotecas incorporadas.
+Os arquivos de licenca de GeographicLib e Pillow estao nas respectivas pastas *.dist-info em pkgs.
+
+Empacotamento: Pynsist 2.8 e NSIS 3.09.
+https://pynsist.readthedocs.io/
+https://nsis.sourceforge.io/
+
+Mapa: dados de OpenStreetMap contributors, sob ODbL.
+A atribuicao permanece visivel no mapa. Os tiles nao sao incluidos no instalador.
+https://www.openstreetmap.org/copyright
+
+O instalador nao modifica nem grava o firmware do Arduino.
+
+O host Python/Rotor_PU2PTU.exe deriva de pythonw.exe de CPython 3.12.10.
+Sua copia recebeu recursos visuais e metadados do Rotor, com aviso da modificacao.
+O codigo executavel e o arquivo pythonw.exe original sao preservados.
+LIEF 0.17.6 e usado somente durante o build (Apache 2.0).
+https://lief.re/

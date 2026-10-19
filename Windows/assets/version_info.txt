@@ -1,0 +1,13 @@
+VSVersionInfo(
+  ffi=FixedFileInfo(filevers=(1, 2, 1, 0), prodvers=(1, 2, 1, 0), mask=0x3f,
+                   flags=0x0, OS=0x40004, fileType=0x1, subtype=0x0, date=(0, 0)),
+  kids=[StringFileInfo([StringTable('041604B0', [
+    StringStruct('CompanyName', 'Mario Pin - PU2PTU'),
+    StringStruct('FileDescription', 'Controlador de rotor de antena com mapa'),
+    StringStruct('FileVersion', '1.2.1'),
+    StringStruct('InternalName', 'Rotor_PU2PTU'),
+    StringStruct('OriginalFilename', 'Rotor_PU2PTU.exe'),
+    StringStruct('ProductName', 'Rotor PU2PTU'),
+    StringStruct('ProductVersion', '1.2.1')
+  ])]), VarFileInfo([VarStruct('Translation', [1046, 1200])])]
+)
