@@ -1,4 +1,4 @@
-Rotor PU2PTU 1.2.1
+Rotor PU2PTU 1.3.0
 Autor: Mario Pin - PU2PTU
 
 Este instalador inclui componentes redistribuiveis de terceiros:

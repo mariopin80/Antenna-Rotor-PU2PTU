@@ -19,7 +19,7 @@ if errorlevel 1 goto erro
 ".venv-build\Scripts\python.exe" "Instalador\build_installer.py"
 if errorlevel 1 goto erro
 echo.
-echo Instalador gerado na pasta acima de Rotor_PU2PTU_1.2.
+echo Instalador gerado na pasta pai da pasta do projeto.
 pause
 exit /b 0
 :erro

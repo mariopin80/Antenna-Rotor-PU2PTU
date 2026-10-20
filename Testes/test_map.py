@@ -156,7 +156,7 @@ class StorageTests(unittest.TestCase):
                 with patch('rotor_map.urlopen',side_effect=OSError('offline')):
                     img,err=tiles._load(key)
                 self.assertIsNotNone(img)
-                self.assertIn('rede',err)
+                self.assertEqual('map_offline',err)
             finally:tiles.close()
 
 

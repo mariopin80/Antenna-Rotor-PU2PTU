@@ -64,11 +64,11 @@ class UserInterfaceTests(unittest.TestCase):
                 self.assertEqual(app.link.mode,0)
                 # As setas nos campos e no controle de opacidade não iniciam JOG.
                 opacity_scale=next(w for row in app.map_panel.winfo_children() for w in row.winfo_children() if isinstance(w,tk.Scale))
-                for widget in (app.grid_entry,app.map_panel.opening_entry,app.map_panel.radius_combo,opacity_scale):
+                for widget in (app.grid_entry,app.station_panel.opening_entry,app.map_panel.radius_combo,opacity_scale):
                     widget.focus_force();root.update()
                     app.key_start(None,-1)
                     self.assertEqual(app.link.mode,0)
-                app.map_panel.opening_var.set('48');app.map_panel.radius_var.set('200')
+                app.map_panel.set_opening(48);app.map_panel.radius_var.set('200')
                 app.map_panel.apply_scale();app.map_panel.change_opacity('24')
                 app.apply_status(Status(325,325,88.5,0,0,0,None,0,0))
                 root.update_idletasks();app.map_panel.redraw()
@@ -89,6 +89,62 @@ class UserInterfaceTests(unittest.TestCase):
                 self.assertIsNone(app.map_panel.target)
                 app.disconnect('Desconectado')
                 self.assertIsNone(app.map_panel.azimuth)
+                self.assertFalse(errors)
+            finally:
+                app.close()
+                try:root.update()
+                except tk.TclError:pass
+
+    def test_inline_settings_languages_and_speed(self):
+        import tkinter as tk
+        from rotor_pc import RotorApp,Status
+        from rotor_geo import Station
+        from rotor_map import TileStore
+        from rotor_i18n import LANGUAGES
+        with tempfile.TemporaryDirectory() as folder:
+            root=tk.Tk();errors=[]
+            root.report_callback_exception=lambda *exc:errors.append(exc)
+            app=RotorApp(root,simulate=True,settings_dir=folder,
+                         tile_store=TileStore(Path(folder)/'tiles',online=False))
+            def pump(seconds=.15):
+                end=time.monotonic()+seconds
+                while time.monotonic()<end:root.update();time.sleep(.005)
+            try:
+                pump(.3);self.assertTrue(app.ready)
+                app.apply_station(Station.from_values('PU2PTU',grid='GG66dr'))
+                self.assertEqual(app.speed_level,6)
+                app.speed_combo.current(2);app.change_speed()
+                self.assertEqual(app.move_button.cget('state'),'disabled')
+                pump();self.assertEqual(app.speed_level,3)
+                self.assertIsNone(app.pending_speed)
+                app.start_jog(1,'mouse');self.assertEqual(app.link.mode,2)
+                app.edit_station();self.assertEqual(app.link.mode,0)
+                pump();self.assertTrue(app.settings_open)
+                self.assertEqual(app.left_button.cget('state'),'disabled')
+                self.assertFalse(any(isinstance(w,tk.Toplevel) for w in root.winfo_children()))
+                self.assertEqual(app.station_panel.winfo_toplevel(),root)
+                self.assertFalse(app.map_panel.winfo_ismapped())
+                app.station_panel.opening_value.set('361')
+                self.assertFalse(app.station_panel.commit())
+                self.assertTrue(app.station_panel.error_text.get())
+                app.station_panel.opening_value.set('45')
+                for language in LANGUAGES:
+                    app.set_language(language);pump(.05)
+                    self.assertEqual(app.stop_button.cget('text'),app.t('stop'))
+                    self.assertEqual(app.station_panel.opening_value.get(),'45')
+                    self.assertFalse(errors)
+                self.assertTrue(app.station_panel.commit());pump()
+                self.assertFalse(app.settings_open)
+                self.assertEqual(app.map_panel.opening,45)
+                self.assertEqual(app.settings_store.load()['language'],'ru')
+                self.assertEqual(app.link.mode,0)
+                app.apply_status(Status(120,120,34,5,0,0,None,0,9))
+                self.assertEqual(app.left_button.cget('state'),'disabled')
+                self.assertEqual(str(app.speed_combo.cget('state')),'disabled')
+                self.assertEqual(app.stop_button.cget('state'),'normal')
+                root.update_idletasks()
+                self.assertEqual(app.left_panel.winfo_width(),234)
+                self.assertGreater(app.map_panel.winfo_width(),900)
                 self.assertFalse(errors)
             finally:
                 app.close()

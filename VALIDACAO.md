@@ -1,87 +1,69 @@
-# Validação — Windows 1.2.1 — 19/10/2026
+# Validação — Windows 1.3.0 / Arduino 1.2 — 20/10/2026
 
 ## Resultado
 
-Foram aprovados **27 testes automatizados**, incluindo a interface Tk em display virtual. Também houve inspeção visual de uma vista real do OpenStreetMap, carregada pela implementação do aplicativo, com todos os 12 mosaicos necessários à vista disponíveis.
+- Suíte Python: **35 casos, 34 aprovados e 1 ignorado** por exigir janela nativa Windows.
+- Firmware real com IO substituído: **25 cenários aprovados**.
+- Compilação para Arduino Uno com core AVR real e bibliotecas Adafruit: **aprovada**, 41 unidades de compilação; programa 27.498 bytes e dados estáticos 1.073 bytes.
+- Inspeção visual em português, inglês, espanhol, alemão e russo, incluindo configuração dentro da janela e mosaicos OpenStreetMap reais da vista atual.
+- Instalador Windows x64 gerado e inspecionado estaticamente conforme o manifesto de build.
 
-Ambiente: Python 3.12, Pillow 12.3.0, GeographicLib 2.1, pySerial 3.5 e Tk em Linux. O rotor físico e uma máquina Windows não estavam disponíveis. O instalador Windows x64 1.2.1 foi compilado em Linux; a execução no Windows do operador ainda precisa ser confirmada.
+Ambiente Python 3.12, Pillow 12.3.0, GeographicLib 2.1, pySerial 3.5 e Tk em Linux. Os testes de GUI usam display virtual. O rotor físico e uma máquina Windows não estavam disponíveis; compilação e simulação não comprovam execução nesses ambientes.
 
-## O que foi verificado
+## Interface e comunicação
 
-- Grid locator Maidenhead de 2, 4 e 6 caracteres, aceitando letras maiúsculas/minúsculas e rejeitando entradas inválidas.
-- Coordenadas com vírgula decimal e validação dos limites da projeção.
-- Azimutes cardeais, distância e azimute geodésicos WGS84, incluindo comparação com o exemplo oficial Wellington–Salamanca da GeographicLib.
-- Projeção/inversão, preservação da estação exatamente no centro e passagem pelo antimeridiano.
-- Abertura do feixe como ângulo **total**: um feixe de 60° produz bordas a ±30°, inclusive cruzando 0°/360°.
-- Ajuste de escala para que o círculo de referência caiba na janela, em diferentes latitudes e raios.
-- Persistência de estação, feixe, opacidade e destino, com tratamento de configurações inválidas.
-- Cache sem acesso à rede quando válido; identificação HTTP própria; revalidação condicional; manutenção do tile disponível quando a rede falha.
-- Entrada e validação de ângulo, análise de telemetria e prioridade de STOP na fila.
-- Identificação e comandos seriais com pySerial real sobre pseudo-terminal, reinício da placa e fragmentação de pacotes.
-- Na interface: configurar estação, calcular destino sem movimentar, apontar para o grid, parar, JOG e parada ao soltar, configurações de mapa e persistência.
-- As setas do teclado em campos de edição e no slider de opacidade não iniciam movimento do rotor.
-- Mistura RGBA do cone conferida numericamente contra o pixel original do mapa, confirmando a opacidade configurada.
-- O cone é ocultado ao desconectar/perder telemetria.
-- O ícone `.ico` contém os tamanhos 16, 24, 32, 48, 64, 128 e 256 px; os arquivos usados pela janela e pelo empacotador estão presentes.
+Mantidas as regressões de grid locator, geodésicas WGS84, projeção/antimeridiano, escala, cache HTTP, mistura RGBA do cone, fila de STOP, validação serial, ícones e parada por soltura/perda de foco.
 
-A vista real de exemplo usa o centro do grid GG66dr, destino GG67aa e azimute simulado de 325°. Não é um registro do rotor físico nem define automaticamente a localização do operador na primeira execução. A configuração inicial de estação permanece vazia até ser informada pelo usuário.
+Verificações específicas desta atualização:
+
+- Coluna esquerda com 234 px (60% dos 390 px anteriores) e mapa usando o espaço restante.
+- Configuração como Frame da janela principal, sem nova Toplevel; dados inválidos sinalizados no próprio formulário.
+- Feixe −3 dB no formulário da estação; alternar idioma preserva valores em edição e salvar não inicia movimento.
+- Catálogos dos cinco idiomas completos e com os mesmos parâmetros de formatação.
+- Persistência do idioma, migração de configurações anteriores e ausência de restauração de velocidade antiga do computador.
+- Simulação com os seis tetos de PWM; seleção pendente impede novos comandos até a confirmação.
+- Modo 5 bloqueia controles de movimento/alteração remota do limite; STOP continua disponível.
+- Transporte pySerial real sobre pseudo-terminal com identidade protocolo 2, consulta/alteração de SPEED, pacotes fragmentados e reinício da placa.
+- Cone ocultado ao desconectar, atalhos do teclado sem movimento dentro de campos e regressões dos ícones preservadas.
+
+As capturas `Interface_1.3.png` e `Configuracao_1.3.png` são simulações em Linux. Usam centro do grid GG66dr, destino GG67aa e apontamento de 325°; esses dados não são gravados como estação padrão. O primeiro uso continua exigindo configurar a estação.
 
 ## Firmware
 
-O arquivo `Arduino/rotor_1_1/rotor_1_1.ino` foi comparado byte a byte com o firmware anterior e está idêntico.
+Os 25 cenários incluem os testes anteriores de parser, watchdog de comunicação, fim de curso, sensor, prioridade local, travamento, duração máxima, inversão e trajetória automática, além de:
 
-SHA-256: `3ccebbfd42006941598731c5a57b32543d17ff747235eb9e397e83bf3bd3fb0b`.
+- Todos os seis níveis em botões físicos, JOG nos dois sentidos e automático.
+- Redução imediata do teto durante movimento e aumento gradual sem salto ao máximo.
+- Identidade 1.2/protocolo 2 e validação estrita de SPEED.
+- Gravação/restauração em dois registros EEPROM, ausência de regravação do mesmo nível, 300 gravações cruzando a volta do contador e recuperação após interrupção de escrita.
+- EEPROM virgem iniciando em 6 e registros inválidos adotando 1.
+- Entrada no menu parado, liberação dos botões, alteração por toque, salvamento e bloqueio de movimento até soltura.
+- Dois botões durante movimento parando sem abrir menu; falha de sensor continua protegendo mesmo no menu.
 
-Esta atualização não introduz alteração de movimento, não revalida mecanicamente o rotor e não altera o corte final de PWM. A validação anterior e o guia do firmware foram preservados em `Arduino/VALIDACAO_FIRMWARE_1.1.md` e `Arduino/GUIA_FIRMWARE_1.1.md`.
+Os sketches 1.0 e 1.1 permanecem preservados. O corte final do PWM mínimo e o ajuste geral de desaceleração não foram alterados nesta versão. Os limites eletrônicos continuam dependendo da calibração e do sensor da montagem.
 
-## Repetir os testes
+## Repetir
 
-Na raiz do pacote, com dependências de `Windows/requirements.txt` instaladas:
-
-```
+```sh
 python -m unittest discover -s Testes -v
+python Testes/executar_firmware.py
 ```
 
-Os testes de cálculo, armazenamento, comunicação e regressão dos ícones são executados normalmente. A suíte completa tem 28 casos: 27 passaram em Linux, incluindo a GUI; a consulta WM_GETICON foi ignorada por exigir Windows. Os testes de pseudo-terminal são específicos de POSIX e serão ignorados no Windows.
+Para incluir GUI, defina `ROTOR_TEST_UI=1` e use um display disponível. Em PowerShell:
 
-O teste de interface é opcional. Em PowerShell, para ativá-lo:
-
-```
+```powershell
 $env:ROTOR_TEST_UI='1'
 py -3 -m unittest discover -s Testes -v
 ```
 
-Em Linux, é preciso um display disponível (`DISPLAY`) ou um Xvfb. O teste de interface usa tiles de teste/ausentes e não acessa a rede. A inspeção visual do OpenStreetMap real foi feita separadamente, apenas para a vista atual; nenhum cache de tiles é distribuído.
+Pseudo-terminais exigem POSIX; WM_GETICON exige Windows. Testes de mapa não usam a rede; a inspeção visual de OSM foi separada, apenas para a vista atual. Nenhum cache é distribuído.
 
-## Limites
+Para compilar o firmware, abra o sketch 1.2 na IDE Arduino com placa Uno e as bibliotecas do guia. Os testes nativos usam g++ e não substituem essa compilação AVR.
 
-Não houve ensaio de campo, medição de diagrama de radiação nem validação de precisão mecânica. O mapa mostra orientação e abertura angular; não representa cobertura de rádio. A precisão de apontamento por grid depende da célula informada e da posição real da estação dentro dela.
+## Instalador e limites
 
-O instalador Windows foi compilado com Pynsist 2.8, LIEF 0.17.6 e NSIS 3.09. A execução em Windows e a criação/remoção efetiva dos atalhos ainda não foram testadas. O teste em Wine não chegou a iniciar: o ambiente bloqueou a criação do socket local necessário ao wineserver (`Operation not permitted`). Isso não é um resultado de execução do aplicativo.
+A receita usa CPython 3.12.10 Windows x64, Tcl/Tk oficial, wheels Windows fixados por SHA-256, Pynsist 2.8, LIEF 0.17.6 e NSIS 3.09. O pacote contém os cinco módulos da aplicação, traduções, assets e dependências. O manifesto registra o instalador e o host com seus hashes.
 
-## Correção dos ícones em 1.2.1
+A inspeção confere integridade do arquivo, identidade x64, recursos de ícone, módulos idênticos aos fontes, ausência de extensões Linux, imports das DLLs e presença do runtime. O host e os atalhos preservam a correção de ícones da 1.2.1. A instalação/remoção e os ícones exibidos no Windows precisam de confirmação nesse sistema.
 
-As imagens enviadas pelo operador mostram que a versão 1.2 abriu a janela com ícone genérico e apresentou Python na barra de tarefas. Esse relato comprova o defeito visual no Windows, apesar da presença dos assets no instalador.
-
-A versão 1.2.1 usa um host GUI com nome e ícone próprios e os atalhos abrem esse host. O código nativo do host é idêntico ao do Pythonw oficial; somente os recursos e metadados PE foram alterados, sem atribuir a assinatura original à cópia. O runtime original permanece preservado. A identidade inferida do caminho do EXE permite ao Windows relacionar processo e atalhos.
-
-A janela aplica o ICO ao Tk e usa `LoadImageW`/`WM_SETICON` no HWND externo. O PNG é alternativa independente. A configuração é repetida após o mapeamento da janela, com handles do tamanho correto para 64 bits e liberação ao fechar. Falhas ficam registradas no log do programa.
-
-Os cinco novos testes portáteis cobrem: falha de DPI sem omitir identidade; identidade do host; ICO independente do PNG; falha do Tk sem impedir a via nativa; e HWND externo com handles maiores que 32 bits. O teste adicional de GUI em Windows consulta `WM_GETICON` para os dois tamanhos, mas não foi executado neste ambiente.
-
-## Verificação do instalador
-
-- Instalador e desinstalador com cabeçalhos PE de Windows x64 e recursos de ícone conferidos.
-- Os sete recursos RT_ICON incorporados ao instalador, ao desinstalador e ao host `Rotor_PU2PTU.exe` correspondem byte a byte às imagens do ICO fornecido (16, 24, 32, 48, 64, 128 e 256 px).
-- Conteúdo do instalador extraído com 7-Zip para conferir integridade, módulos, assets e dependências.
-- Python 3.12.10 embutido para Windows x64, com Tcl/Tk extraído do MSI oficial da mesma versão e arquitetura.
-- Wheels Windows: Pillow 12.3.0 CPython 3.12 x64, pySerial 3.5 e GeographicLib 2.1. Downloads fixados e conferidos por SHA-256.
-- `_tkinter.pyd`, Tcl/Tk, zlib1 e as bibliotecas Visual C++ exigidas estão no pacote. Os binários do programa são todos x64; não há extensões `.so` de Linux.
-- Importações PE conferidas contra as DLLs incluídas e bibliotecas do sistema Windows. Essa análise estática não substitui a carga das DLLs no Windows.
-- Os quatro módulos principais, incluindo `rotor_windows.py`, são os mesmos submetidos aos testes.
-- PNG e ICO da janela ficam em `pkgs/assets`, caminho resolvido por `rotor_windows.asset_path`; o preâmbulo configura os caminhos de Tcl/Tk e das DLLs, além do log de inicialização.
-- Template compilado em português, por usuário, com atalho na área de trabalho, menu Iniciar, opção de simulação e desinstalador. Os atalhos apontam para o host `Python/Rotor_PU2PTU.exe` e usam o ICO do rotor; os caminhos e argumentos são colocados entre aspas.
-- A receita de desinstalação remove os componentes conhecidos do programa, seus atalhos e o registro de desinstalação; preserva `%APPDATA%\RotorPU2PTU`.
-- O SHA-256 do instalador está em `Windows/Instalador/BUILD_MANIFEST.json`.
-
-No Windows, o primeiro ensaio recomendado é abrir **Rotor PU2PTU - Simulacao** no menu Iniciar, conferir o ícone no canto superior esquerdo e só então testar a conexão ao Arduino já gravado com o firmware 1.1.
+Não houve ensaio mecânico, medição de velocidade, torque, precisão ou diagrama de radiação. O teto é PWM, não uma velocidade física regulada. O cone representa orientação e abertura, sem prever cobertura. O primeiro ensaio deve começar no modo Simulação e depois seguir o guia de bancada do firmware.

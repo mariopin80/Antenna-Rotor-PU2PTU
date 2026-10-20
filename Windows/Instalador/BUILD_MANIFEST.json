@@ -1,10 +1,10 @@
 {
-  "installer": "Rotor_PU2PTU_1.2.1_Setup_x64.exe",
-  "sha256": "39073d3edfaeac6e6a0d98dfdab075e80d0f7680fa67ccc112166ed599be5d9a",
-  "size_bytes": 16182516,
+  "installer": "Rotor_PU2PTU_1.3.0_Setup_x64.exe",
+  "sha256": "43c9ea577590496c666b9159aca0a75d636e1a9bfabb629244077be11eba10cf",
+  "size_bytes": 16190563,
   "runtime": "CPython 3.12.10 Windows x64 + Tcl/Tk oficial",
   "application_host": "Python/Rotor_PU2PTU.exe",
-  "application_host_sha256": "5c2f537c982fb2ee5afb8664ce6d1854abfa7d2e13728ec38f276abbcb9ef739",
+  "application_host_sha256": "4217d5b6519fbdb63af38c8b1bb7ded0539f29af9adabeac372e8868024ecf02",
   "inputs_sha256": {
     "python-3.12.10-embed-amd64.zip": "4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3",
     "tcltk.msi": "55c96ffad69b1c834aa52e11b9ce41637a178ba6ad6607e83956044834276e2a",

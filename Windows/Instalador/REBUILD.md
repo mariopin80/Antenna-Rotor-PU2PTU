@@ -1,21 +1,27 @@
-# Recriar o instalador Windows x64
+# Recriar o instalador Windows x64 1.3.0
 
-O operador pode usar diretamente `Rotor_PU2PTU_1.2.1_Setup_x64.exe`. Nao precisa de Python, NSIS ou destes scripts.
+Para usar o programa, baixe `Rotor_PU2PTU_1.3.0_Setup_x64.exe` no release. O operador não precisa instalar Python ou NSIS.
 
-Para recriar no Windows, instale Python 3.11+ com o Python Launcher e NSIS 3.09 ou superior. Execute `Windows/GERAR_INSTALADOR.bat`. O script baixa o runtime oficial de CPython **3.12.10 x64**, Tcl/Tk e os tres wheels fixados, confere SHA-256 e compila o instalador. A extracao administrativa do MSI de Tcl/Tk pode exigir elevacao no computador de compilacao. Nao instala outro Python no computador do operador.
+## Windows
 
-Em Linux, instale NSIS, msitools e Pynsist 2.8 e LIEF 0.17.6. Execute:
+Instale Python 3.11+ com Launcher e NSIS 3.09 ou superior. Execute `Windows/GERAR_INSTALADOR.bat`. A receita baixa CPython **3.12.10 x64**, Tcl/Tk e três wheels fixados, confere SHA-256 e compila o instalador. A extração administrativa do MSI de Tcl/Tk pode exigir elevação na máquina de compilação.
 
-```
+## Linux
+
+Instale NSIS, msitools, Pynsist 2.8 e LIEF 0.17.6. Execute:
+
+```sh
 python3 Windows/Instalador/build_installer.py --work-dir /caminho/temporario/build-rotor
 ```
 
-O Python usado para compilar precisa de pip. O build pode usar Python 3.11+, mas sempre inclui o runtime Windows 3.12.10, com modulos binarios Windows x64. O destino do instalador e a pasta que contem o pacote `Rotor_PU2PTU_1.2.1`; nao e instalado automaticamente. O manifesto registra o hash do instalador e de suas entradas.
+O Python de build precisa de pip. O aplicativo sempre recebe o runtime Windows 3.12.10 e módulos Windows x64. O instalador gerado fica na pasta pai da raiz do repositório; `BUILD_MANIFEST.json` registra os hashes do instalador, do host e dos downloads. Os arquivos temporários ficam em `--work-dir` e não devem ser versionados.
 
-O template `rotor.nsi` define idioma portugues, instalacao por usuario, icone, atalhos, abertura ao terminar e desinstalacao. `startup.py` configura as bibliotecas Tcl/Tk antes de abrir a janela. `rotor_sim.py` implementa o atalho de simulacao. O icone da janela e aplicado por `RotorApp.set_window_icon` no codigo principal.
+## Conteúdo e identidade
 
-O desinstalador remove apenas os componentes do programa. As configuracoes e o cache em `%APPDATA%\RotorPU2PTU` ficam preservados para uma reinstalacao. A instalacao nao altera o PATH nem uma instalacao preexistente de Python e nao grava firmware.
+`installer.cfg` inclui `rotor_pc`, `rotor_geo`, `rotor_map`, `rotor_windows` e `rotor_i18n`, além das dependências. `startup.py` prepara Tcl/Tk e DLLs. O atalho de simulação usa `rotor_sim.py`. `rotor.nsi` define interface do instalador em português, instalação por usuário, ícone, atalhos e desinstalação. O idioma do aplicativo é escolhido pelas cinco bandeiras na própria janela.
 
-Referencias de build: [Pynsist](https://pynsist.readthedocs.io/en/latest/faq.html#packaging-with-tkinter), [configuracao](https://pynsist.readthedocs.io/en/latest/cfgfile.html), [NSIS Modern UI](https://nsis.sourceforge.io/Docs/Modern%20UI%202/Readme.html).
+A receita prepara Pynsist com `--no-makensis`, gera `Python/Rotor_PU2PTU.exe` com `brand_runtime.py` e compila NSIS. O host é cópia do Pythonw com recursos PE de ícone/versão substituídos; código, ponto de entrada e imports são preservados. A assinatura do original não é atribuída à cópia modificada, e os binários oficiais originais ficam incluídos. LIEF é dependência apenas de build.
 
-A receita prepara o Pynsist com `--no-makensis`, cria `Python/Rotor_PU2PTU.exe` com `brand_runtime.py` e só então compila o NSIS. O host é uma cópia do Pythonw com recursos PE de ícone e versão substituídos. O código `.text`, o ponto de entrada e as importações são preservados. A assinatura do original não é atribuída à cópia modificada; os arquivos oficiais originais permanecem no pacote. LIEF é necessário somente para gerar o instalador, não é instalado no computador do operador.
+A instalação não altera PATH nem instalações de Python existentes, e não grava o Arduino. O aplicativo 1.3.0 exige firmware 1.2/protocolo 2. A desinstalação preserva configurações e cache em `%APPDATA%\RotorPU2PTU`.
+
+Referências: [Pynsist](https://pynsist.readthedocs.io/en/latest/cfgfile.html), [NSIS Modern UI](https://nsis.sourceforge.io/Docs/Modern%20UI%202/Readme.html).

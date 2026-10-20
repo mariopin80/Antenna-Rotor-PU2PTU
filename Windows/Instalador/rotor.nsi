@@ -18,19 +18,19 @@ InstallDir "$LOCALAPPDATA\Programs\RotorPU2PTU"
 InstallDirRegKey HKCU "${REG_APP}" "InstallDir"
 ShowInstDetails show
 ShowUninstDetails show
-VIProductVersion "1.2.1.0"
-VIFileVersion "1.2.1.0"
+VIProductVersion "1.3.0.0"
+VIFileVersion "1.3.0.0"
 VIAddVersionKey "ProductName" "Rotor PU2PTU"
 VIAddVersionKey "FileDescription" "Instalador do Rotor PU2PTU"
 VIAddVersionKey "CompanyName" "Mario Pin - PU2PTU"
 VIAddVersionKey "LegalCopyright" "Mario Pin - PU2PTU"
-VIAddVersionKey "FileVersion" "1.2.1.0"
-VIAddVersionKey "ProductVersion" "1.2.1"
+VIAddVersionKey "FileVersion" "1.3.0.0"
+VIAddVersionKey "ProductVersion" "1.3.0"
 
 !define MUI_ICON "[[icon]]"
 !define MUI_UNICON "[[icon]]"
 !define MUI_ABORTWARNING
-!define MUI_WELCOMEPAGE_TEXT "Este assistente instala o Rotor PU2PTU 1.2.1 com mapa OpenStreetMap e apontamento por grid locator.$\r$\n$\r$\nO programa inclui o Python e as bibliotecas necessárias. A instalação funciona sem internet; o mapa usa internet ao carregar novas áreas.$\r$\n$\r$\nFeche o Rotor antes de atualizar."
+!define MUI_WELCOMEPAGE_TEXT "Este assistente instala o Rotor PU2PTU 1.3.0 com mapa OpenStreetMap e apontamento por grid locator.$\r$\n$\r$\nO programa inclui o Python e as bibliotecas necessárias. A instalação funciona sem internet; o mapa usa internet ao carregar novas áreas.$\r$\n$\r$\nFeche o Rotor antes de atualizar."
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_TEXT "Abrir o Rotor PU2PTU"
 !define MUI_FINISHPAGE_RUN_FUNCTION RunRotor

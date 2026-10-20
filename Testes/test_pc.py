@@ -93,8 +93,12 @@ class TransportTests(unittest.TestCase):
                     self.commands.append(cmd)
                     if cmd == 'HELLO':
                         # Inicializacao pode ter identidade duplicada, como no Uno.
-                        os.write(self.master, b'BOOT,1.1\nROTOR,1,1.1\nROTOR,1,1.1\n')
+                        os.write(self.master, b'BOOT,1.2\nROTOR,2,1.2\nSPEED,6\nROTOR,2,1.2\n')
                         identified = True
+                    elif cmd == 'SPEED?':
+                        os.write(self.master,b'SPEED,6\n')
+                    elif cmd.startswith('SPEED,'):
+                        os.write(self.master,b'OK,SPEED\n'+cmd.encode()+b'\n')
             if identified and time.monotonic()-last_frame > .1:
                 os.write(self.master, b'STAT,120.0,120.0,34.1,0,0,0,NA,0,0\n')
                 last_frame = time.monotonic()
@@ -128,10 +132,17 @@ class TransportTests(unittest.TestCase):
         self.assertIn('STOP',self.commands)
         self.assertNotIn('PING',self.commands)  # worker nao cria heartbeat proprio.
 
+    def test_speed_round_trip(self):
+        self.wait_event('identified')
+        self.assertEqual(self.wait_event('speed'),6)
+        self.link.send('SPEED,3')
+        self.assertEqual(self.wait_event('speed'),3)
+        self.assertIn('SPEED,3',self.commands)
+
     def test_board_reset_disconnects(self):
         self.wait_event('identified')
         self.wait_event('status')
-        os.write(self.master,b'BOOT,1.1\nROTOR,1,1.1\n')
+        os.write(self.master,b'BOOT,1.2\nROTOR,2,1.2\n')
         end=time.monotonic()+1
         error=None
         while time.monotonic()<end:
@@ -139,7 +150,7 @@ class TransportTests(unittest.TestCase):
             except queue.Empty: continue
             if kind=='error': error=payload;break
         self.assertIsNotNone(error)
-        self.assertIn('reiniciou',error)
+        self.assertEqual(error,'board_reset')
 
     def test_partial_frame_and_no_heartbeat(self):
         self.wait_event('identified')

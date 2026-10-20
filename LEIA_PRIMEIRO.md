@@ -1,98 +1,111 @@
-# Rotor PU2PTU — Windows 1.2.1
+# Rotor PU2PTU — Windows 1.3.0 / Arduino 1.2
 
 Autor: Mario Pin – PU2PTU
 
-A versão 1.2.1 corrige a identificação visual no Windows: ícone do rotor no título da janela, na barra de tarefas e nos atalhos. Mantém o mapa OpenStreetMap, feixe transparente, estação e apontamento por grid locator da versão 1.2. O firmware continua sendo 1.1.
+A versão 1.3.0 traz coluna de comandos mais estreita, configuração de estação na própria janela, cinco idiomas e limite global de velocidade. O firmware 1.2 permite ajustar esse limite também pelos dois botões físicos e o mantém salvo sem computador.
 
 ## Instalar ou atualizar
 
-1. Feche o Rotor aberto.
-2. Execute **Rotor_PU2PTU_1.2.1_Setup_x64.exe** em Windows 10/11 de 64 bits e instale sobre a versão anterior, usando a mesma pasta.
-3. Mantenha **Atalho na área de trabalho** selecionado. Abra pelo atalho novo **Rotor PU2PTU**.
-4. Se o ícone antigo do Python estiver fixado na barra de tarefas, desafixe-o. Depois de abrir pelo novo atalho, fixe a nova entrada do Rotor se desejar.
+1. Feche o aplicativo aberto.
+2. Grave `Arduino/rotor_1_2/rotor_1_2.ino` na placa **Arduino Uno**, conforme `Arduino/GUIA_FIRMWARE_1.2.md`.
+3. Execute **Rotor_PU2PTU_1.3.0_Setup_x64.exe** em Windows 10/11 x64. Use a mesma pasta para atualizar.
+4. Abra pelo atalho **Rotor PU2PTU**. Para experimentar sem Arduino, use **Rotor PU2PTU - Simulacao** no menu Iniciar.
+5. Selecione a COM e conecte. Feche antes o Monitor Serial da IDE. Aguarde a identificação e a leitura do limite salvo.
 
-O instalador inclui Python e todas as bibliotecas. Há também o atalho **Rotor PU2PTU - Simulacao** no menu Iniciar, que abre sem comandar o Arduino. A instalação funciona sem internet; novas áreas do mapa exigem acesso à rede.
+O aplicativo 1.3.0 exige o firmware 1.2 e protocolo 2. A interface antiga 1.2.1 não é compatível com esse novo protocolo. O instalador inclui Python, Tcl/Tk e as bibliotecas, mas não grava o Arduino.
 
-A pasta inicial é `%LOCALAPPDATA%\Programs\RotorPU2PTU`, para o usuário atual. Estação, escala e demais configurações existentes são reutilizadas em `%APPDATA%\RotorPU2PTU`. O desinstalador permanece em Configurações → Aplicativos.
+A pasta inicial é `%LOCALAPPDATA%\Programs\RotorPU2PTU`, por usuário. As configurações anteriores são reutilizadas em `%APPDATA%\RotorPU2PTU`; o desinstalador preserva essa pasta. Não é necessário Python instalado para usar o instalador.
 
-Para executar os fontes, instale Python 3.11/3.12 com Tcl/Tk, execute `Windows/INSTALAR.bat` e depois `Windows/INICIAR.bat` ou `Windows/SIMULAR.bat`. A instalação de dependências por essa alternativa exige internet.
+Para executar pelos fontes, instale Python 3.11/3.12 com Tcl/Tk e execute `Windows/INSTALAR.bat`, depois `Windows/INICIAR.bat` ou `Windows/SIMULAR.bat`.
 
-## Configurar a estação
+## Painel de comandos e idiomas
 
-Clique **Configurar estação** no alto do mapa. Há duas opções:
+A coluna esquerda tem 234 px, 60% dos 390 px anteriores. ESQ, PARAR e DIR continuam lado a lado. Em janelas baixas o painel pode ser rolado para alcançar os itens inferiores. O mapa aproveita a largura restante.
 
-- Coordenadas WGS84 em graus decimais, com Sul e Oeste negativos. Aceita ponto ou vírgula decimal nos campos separados.
-- Grid locator Maidenhead com 2, 4 ou 6 caracteres, como `GG66dr`. Nesse caso é usado o **centro da célula**, e não uma posição exata dentro dela.
+As pequenas bandeiras no canto inferior direito selecionam inglês (EUA), português (Brasil), espanhol (Espanha), alemão (Alemanha) e russo (Rússia). A troca é imediata e não apaga campos em edição. O idioma fica salvo entre execuções; os códigos do protocolo e os dados da estação independem dele.
 
-O nome/indicativo é apenas uma identificação no mapa. A estação fica sempre no centro; o mapa mantém o Norte para cima. Para os azimutes do rotor e do mapa coincidirem, a calibração do rotor deve usar Norte verdadeiro.
+## Configurar a estação e o feixe
 
-As configurações da estação, abertura do feixe, raio, opacidade e último grid são salvas entre execuções. No Windows ficam em `%APPDATA%\RotorPU2PTU\mapa.json`.
+Clique **Configurar estação** no alto do mapa. O formulário aparece na própria janela, no lugar do mapa, e contém:
 
-## Escala do mapa
+- Nome ou indicativo da estação.
+- Coordenadas WGS84 em graus decimais, com Sul e Oeste negativos; aceita ponto ou vírgula.
+- Alternativa por grid Maidenhead de 2, 4 ou 6 caracteres, como `GG66dr`; usa o centro da célula.
+- **Abertura total do feixe −3 dB**, de 1° a 360°. Por exemplo, 60° corresponde a ±30° em relação ao centro.
 
-O campo **Raio (km)** define a distância de referência que cabe na vista, entre 1 e 3.000 km. A lista oferece valores comuns; também é possível digitar outro valor e clicar **Aplicar**. Os botões **+ / −** e a roda do mouse aproximam/afastam mantendo a estação no centro.
+**Aplicar configuração** salva e volta ao mapa. **Cancelar / Voltar ao mapa** descarta as alterações do formulário. Abrir a configuração solicita parada; aplicar os campos não movimenta o rotor. O formulário impede comandos de movimento enquanto estiver aberto.
 
-O círculo geodésico desse raio cabe na área visível; a janela pode mostrar áreas adicionais nas laterais. A barra de escala no mapa mostra a distância local. A projeção do mapa é Web Mercator e não cobre os polos; a estação aceita latitudes entre −85° e +85°.
+A estação permanece no centro e o Norte fica para cima. A calibração do rotor deve usar Norte verdadeiro para coincidir com o mapa. Estação, feixe, raio, opacidade, último grid e idioma ficam em `%APPDATA%\RotorPU2PTU\mapa.json`.
 
-## Cone de apontamento
+## Velocidade máxima
 
-No campo **Feixe −3 dB (°)**, informe a **largura angular total do feixe no plano horizontal**, entre os dois pontos a −3 dB. Exemplo: um feixe de 48° tem bordas a ±24° do eixo de apontamento.
+Escolha **Velocidade máxima** na coluna esquerda. O valor só é considerado confirmado após a resposta do Arduino. O mesmo limite vale para controle manual no PC, botões físicos e automático.
 
-- O cone azul acompanha o **azimute atual recebido do Arduino**, o mesmo exibido no painel esquerdo.
-- A opacidade inicial é 22%. O controle inferior permite ajustar entre 5% e 60%, mantendo o mapa legível por baixo.
-- A linha central azul indica o eixo do feixe. O cone não é uma estimativa de propagação, cobertura, sinal ou alcance: sua extensão acompanha apenas o raio de referência do mapa.
-- Sem telemetria válida ou após desconectar, o cone é ocultado. Em SIMULAÇÃO ele acompanha o rotor simulado, identificado na janela.
+| Nível | PWM máximo / 255 |
+|---|---:|
+| 1 | 70 |
+| 2 | 90 |
+| 3 | 110 |
+| 4 | 140 |
+| 5 | 175 |
+| 6 | 220 |
 
-A abertura configurada é uma representação angular simplificada; não representa lóbulos laterais/traseiros nem um diagrama de radiação medido.
+Diminuir o limite durante movimento reduz imediatamente o PWM que estiver acima dele. Aumentá-lo libera uma subida gradual. O limite representa PWM, e não graus por segundo medidos: carga e alimentação influenciam a velocidade real.
 
-## Apontar por grid locator
+O valor é salvo na EEPROM do Arduino e reaplicado após ligar. Ao conectar, o Windows consulta esse valor e não envia um ajuste antigo do PC. Uma alteração feita no display aparece também no Windows. A seleção fica indisponível enquanto o Arduino está em configuração local, controle físico ou falha. Se a confirmação de uma alteração não chegar, o aplicativo encerra a conexão e pede reconexão para conferir o valor real.
+
+### Ajuste pelos dois botões do Arduino
+
+1. Com o rotor já parado, mantenha **os dois botões pressionados por aproximadamente 2 s**.
+2. Na tela de configuração, solte ambos antes de editar.
+3. Pressione ESQ para diminuir ou DIR para aumentar; cada toque muda um nível, entre 1 e 6.
+4. Pressione ambos para salvar e sair. Solte os dois antes de voltar a movimentar.
+
+Pressionar ambos **durante movimento** para imediatamente. Continuar segurando nessa situação não abre o menu: é necessário soltar e iniciar uma nova pressão com o rotor já parado. Dentro do menu nenhum comando de movimento é aceito, e PARAR continua disponível sem fechar a configuração.
+
+Um Uno com EEPROM sem uso começa no nível 6, igual ao máximo anterior. Se os registros de configuração estiverem inválidos, o firmware adota nível 1. A gravação usa dois registros alternados; salvar o mesmo nível não regrava a EEPROM. O guia do firmware detalha o procedimento de ensaio.
+
+## Escala e cone no mapa
+
+**Raio (km)** define a distância de referência entre 1 e 3.000 km. Selecione um valor ou digite e aplique. **+ / −** e a roda do mouse aproximam/afastam mantendo a estação no centro. A projeção Web Mercator aceita estação entre −85° e +85° de latitude.
+
+O cone azul acompanha o azimute atual recebido do Arduino. A linha central indica o eixo e a largura representa a abertura total configurada na estação. A opacidade começa em 22% e pode ser ajustada de 5% a 60% no mapa. Sem telemetria válida, o cone é ocultado; em simulação segue o rotor simulado.
+
+A extensão do cone acompanha o raio de referência do mapa. Não é uma previsão de alcance, cobertura, propagação ou sinal, e não inclui lóbulos secundários nem um diagrama medido da antena.
+
+## Apontar por ângulo ou grid
+
+Digite um ângulo de 0° a 360° e pressione **APONTAR** ou Enter no campo. Para grid:
 
 1. Configure a estação.
-2. Digite o grid de destino no painel esquerdo, com até 6 caracteres.
-3. Clique **Calcular** para obter azimute verdadeiro e distância até o **centro** do grid. Isso não movimenta o rotor.
-4. Confira o resultado e clique **APONTAR PARA O GRID** para enviar o azimute ao Arduino.
+2. Digite um destino Maidenhead de até 6 caracteres e clique **Calcular**. Isso só calcula azimute e distância.
+3. Confira o resultado e clique **APONTAR PARA O GRID**.
 
-O destino aparece em laranja, com uma linha tracejada até ele. O cone azul continua mostrando o apontamento atual, permitindo acompanhar a aproximação ao destino. Quando o destino fica fora da escala, aparece a indicação **fora da vista**; a estação permanece no centro. A posição de destino não exige internet para o cálculo.
+O cálculo usa a menor geodésica WGS84 até o centro da célula. O destino aparece em laranja; o cone continua mostrando o apontamento atual. Grids mais curtos representam áreas maiores. Um destino coincidente com a estação é rejeitado por não definir direção. O cálculo funciona sem internet.
 
-O cálculo usa a menor geodésica no elipsoide WGS84. O grid é normalizado automaticamente, por exemplo `gg66DR` vira `GG66dr`. Um grid igual à posição central da estação é rejeitado por não definir uma direção. Grids de 2 ou 4 caracteres representam áreas maiores e dão um apontamento mais aproximado para uma estação real desconhecida dentro da célula.
+ESQ/DIR giram enquanto pressionados. Soltar, retirar o mouse ou perder o foco interrompe o JOG. PARAR e Esc cancelam o movimento. As setas do teclado dentro de campos de edição não comandam o rotor. Limites, escolha do caminho mecânico, rampas e tempo máximo são aplicados pelo firmware.
 
-A caixa de ângulo e o botão APONTAR continuam disponíveis. ESQ/DIR funcionam enquanto pressionados; PARAR e Esc cancelam o movimento. A escolha do caminho mecânico, os limites e a aceleração/desaceleração continuam a cargo do firmware.
+## Mapas, conexão e ícone
 
-## Conexão e mapas
+A porta pode reiniciar o Uno ao abrir. O aplicativo espera a identificação, solicita parada e lê o limite antes de habilitar movimento; um alvo anterior nunca é retomado automaticamente.
 
-Selecione a COM e clique **Conectar**. Feche antes o Monitor Serial da IDE Arduino. Ao abrir a porta, o Uno pode reiniciar; aguarde a identificação do firmware.
+Os mosaicos OpenStreetMap são carregados por duas threads independentes da comunicação serial. O cache local mantém imagens por pelo menos sete dias e revalida por HTTP. Somente a vista atual é solicitada, sem download antecipado de regiões. Sem rede, mosaicos disponíveis continuam aparecendo; áreas ausentes são sinalizadas. O controle USB continua funcionando. O cache não acompanha o pacote, e a atribuição permanece visível no mapa.
 
-Os mosaicos do OpenStreetMap são carregados em duas threads, separados da interface serial. Somente os tiles da vista atual são solicitados. O programa mantém cache local por pelo menos sete dias e usa requisições condicionais para renovar imagens antigas. Não há download antecipado de regiões ou mapas offline. O cache não é incluído neste pacote.
+O instalador mantém o host `Python/Rotor_PU2PTU.exe`, ícone próprio nos atalhos e aplicação explícita dos ícones pequeno/grande ao título da janela. Erros de inicialização ficam em `%APPDATA%\RotorPU2PTU\startup.log`. A receita está em `Windows/Instalador/REBUILD.md`.
 
-Se a internet falhar, áreas já disponíveis podem continuar aparecendo; as partes ausentes são sinalizadas. O comando do rotor e os cálculos de grid continuam funcionando independentemente da rede. A atribuição ao OpenStreetMap fica visível na parte inferior do painel.
-
-## Ícone e instalador Windows
-
-Os atalhos desta versão abrem `Python/Rotor_PU2PTU.exe`, um host GUI com nome, descrição, versão e os sete tamanhos do ícone do rotor incorporados. Ele deriva de uma cópia de `pythonw.exe`, preservando seu código e suas importações; o original também permanece incluído. Essa identificação vale para o processo em execução, além do arquivo de atalho.
-
-Na janela, `rotor_windows.py` aplica o ICO explicitamente ao Tk e, pela API do Windows, os ícones pequeno e grande ao HWND externo que possui a barra de título. A aplicação é repetida quando a janela aparece. Os ícones nativos permanecem alocados enquanto a janela existir. A falha de um carregador de imagem não impede o outro, e eventuais erros são registrados em `%APPDATA%\RotorPU2PTU\startup.log`.
-
-A versão 1.2 anterior foi executada pelo operador, que identificou os ícones genéricos no título e na barra de tarefas. O instalador 1.2.1 foi compilado e conferido em Linux; **a exibição final no Windows ainda precisa ser confirmada**. O teste de GUI e comunicação em Linux não substitui essa confirmação.
-
-A receita de build está em `Windows/Instalador/REBUILD.md`. O manifesto registra os hashes do instalador e do host. O script `Windows/GERAR_EXE.bat` para PyInstaller também permanece disponível.
-
-## Arquivos principais
+## Arquivos e validação
 
 | Arquivo | Função |
 |---|---|
-| `Windows/rotor_pc.py` | Interface e comunicação serial |
-| `Windows/rotor_map.py` | Mapa, cone, configuração e cache |
-| `Windows/rotor_windows.py` | Ícones da janela e identidade do processo Windows |
-| `Windows/rotor_geo.py` | Grid locator, projeção e geodésicas |
-| `Windows/assets/rotor_icon.ico` | Ícone Windows em múltiplos tamanhos |
-| `Windows/Instalador/` | Fontes do instalador, receita de build e manifesto |
-| `Windows/GERAR_INSTALADOR.bat` | Recria o instalador no Windows |
-| `Windows/assets/ICON.md` | Descrição e prompt do ícone |
-| `Interface_1.2.png` | Prévia da disposição da interface 1.2 com estação e rotor simulados |
-| `VALIDACAO.md` | Verificações desta versão |
-| `Arduino/` | Firmware e documentos anteriores, preservados |
-| `Testes/` | Testes de cálculo, cache, interface e comunicação |
+| `Windows/rotor_pc.py` | Interface e comunicação |
+| `Windows/rotor_i18n.py` | Traduções e bandeiras |
+| `Windows/rotor_map.py` | Mapa, configuração e cache |
+| `Windows/rotor_geo.py` | Grid, projeção e geodésicas |
+| `Windows/rotor_windows.py` | Identidade e ícones nativos |
+| `Arduino/rotor_1_2/rotor_1_2.ino` | Firmware completo desta versão |
+| `Arduino/GUIA_FIRMWARE_1.2.md` | Ligações, operação local e ensaio |
+| `VALIDACAO.md` | Resultados e limites dos testes |
 
-O firmware incluído é exatamente o anterior, com aproximação de 30° e passo de redução de PWM 1. Esta atualização não altera o corte final do PWM mínimo; o ajuste do pequeno tranco discutido anteriormente permanece separado.
+A interface, o protocolo e a lógica foram testados em Linux; o firmware compilou para Uno. O equipamento físico e o Windows não estavam disponíveis nesta preparação. O ajuste do corte final de PWM discutido anteriormente não foi alterado nesta atualização.
 
-Fontes e créditos: [OpenStreetMap](https://www.openstreetmap.org/copyright), [política de tiles](https://operations.osmfoundation.org/policies/tiles/), [GeographicLib](https://geographiclib.sourceforge.io/html/python/), [Pillow](https://pillow.readthedocs.io/) e [pySerial](https://pyserial.readthedocs.io/).
+Dados de mapa: [OpenStreetMap contributors](https://www.openstreetmap.org/copyright). Avisos de terceiros: `Windows/Instalador/CREDITOS.txt`.

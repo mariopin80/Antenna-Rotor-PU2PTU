@@ -28,11 +28,11 @@ def _version_resource() -> bytes:
     strings = {
         "CompanyName": "Mario Pin - PU2PTU",
         "FileDescription": "Rotor PU2PTU",
-        "FileVersion": "1.2.1.0",
+        "FileVersion": "1.3.0.0",
         "InternalName": "RotorPU2PTU",
         "OriginalFilename": "Rotor_PU2PTU.exe",
         "ProductName": "Rotor PU2PTU",
-        "ProductVersion": "1.2.1",
+        "ProductVersion": "1.3.0",
         "LegalCopyright": "Aplicativo: Mario Pin - PU2PTU. Runtime CPython: Python Software Foundation e demais titulares; ver Python/LICENSE.txt.",
         "Comments": "Host CPython 3.12.10 com recursos visuais do Rotor. Copia modificada; pythonw.exe original preservado.",
     }
@@ -42,8 +42,8 @@ def _version_resource() -> bytes:
     strinfo = _block("StringFileInfo", children=table, text=True)
     translation = _block("Translation", struct.pack("<HH", 0x0409, 1200))
     varinfo = _block("VarFileInfo", children=translation, text=True)
-    fixed = struct.pack("<13I", 0xFEEF04BD, 0x10000, 0x10002, 0x10000,
-                        0x10002, 0x10000, 0x3F, 0, 0x40004, 1, 0, 0, 0)
+    fixed = struct.pack("<13I", 0xFEEF04BD, 0x10000, 0x10003, 0x0,
+                        0x10003, 0x0, 0x3F, 0, 0x40004, 1, 0, 0, 0)
     return _block("VS_VERSION_INFO", fixed, _join([strinfo, varinfo]))
 
 

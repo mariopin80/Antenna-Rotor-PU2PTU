@@ -111,7 +111,7 @@ def main() -> None:
         shutil.copy2(wheel, stage / "wheels" / wheel.name)
     pkgs = stage / "pynsist_pkgs"
     pkgs.mkdir()
-    for name in ("rotor_pc.py", "rotor_geo.py", "rotor_map.py", "rotor_windows.py"):
+    for name in ("rotor_pc.py", "rotor_geo.py", "rotor_map.py", "rotor_windows.py", "rotor_i18n.py"):
         shutil.copy2(WINDOWS / name, pkgs / name)
     shutil.copy2(HERE / "rotor_sim.py", pkgs / "rotor_sim.py")
     shutil.copytree(WINDOWS / "assets", pkgs / "assets")
@@ -132,7 +132,7 @@ def main() -> None:
                   WINDOWS / "assets/rotor_icon.ico")
     subprocess.run([shutil.which("makensis"), "build/installer.nsi"],
                    cwd=stage, env=env, check=True)
-    installer_name = "Rotor_PU2PTU_1.2.1_Setup_x64.exe"
+    installer_name = "Rotor_PU2PTU_1.3.0_Setup_x64.exe"
     dest = WINDOWS.parent.parent / installer_name
     shutil.copy2(stage / "build" / installer_name, dest)
     manifest = {

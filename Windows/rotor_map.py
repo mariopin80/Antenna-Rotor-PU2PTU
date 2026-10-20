@@ -17,6 +17,7 @@ from tkinter import ttk, messagebox
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 import webbrowser
+from rotor_i18n import Translator, LANGUAGES
 
 from PIL import Image, ImageDraw, ImageTk
 from rotor_geo import (Station, number, locator_center, canonical_locator,
@@ -28,7 +29,7 @@ PANEL = '#1c2834'
 FG = '#e5edf5'
 MUTED = '#9dafc0'
 TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-USER_AGENT = 'RotorPU2PTU/1.2 (Desktop antenna pointing map)'
+USER_AGENT = 'RotorPU2PTU/1.3 (Desktop antenna pointing map)'
 CACHE_SECONDS = 7*24*60*60
 
 
@@ -44,13 +45,15 @@ class SettingsStore:
 
     def load(self):
         default = {'station': None, 'radius': 200.0, 'opening': 60.0,
-                   'opacity': .22, 'target_grid': ''}
+                   'opacity': .22, 'target_grid': '', 'language': 'pt'}
         try:
             d = json.loads(self.path.read_text(encoding='utf-8'))
         except (OSError, ValueError):
             return default
         if not isinstance(d, dict):
             return default
+        if d.get('language') in LANGUAGES:
+            default['language'] = d['language']
         try:
             v = d.get('station')
             if isinstance(v, dict):
@@ -145,7 +148,7 @@ class TileStore:
             try:
                 image,error = self._load(key)
             except Exception:
-                image,error = None,'Mapa indisponível; confira a conexão.'
+                image,error = None,'map_unavailable'
             if not self.quit.is_set():self.results.put((key,image,error))
 
     @staticmethod
@@ -167,7 +170,7 @@ class TileStore:
         except (OSError,ValueError):
             pass
         if not self.online:
-            return stale, 'Mapa sem rede.' if stale is None else ''
+            return stale, 'map_offline' if stale is None else ''
         headers = {'User-Agent':USER_AGENT,'Accept':'image/png'}
         if meta.get('etag'):headers['If-None-Match'] = meta['etag']
         if meta.get('modified'):headers['If-Modified-Since'] = meta['modified']
@@ -191,87 +194,114 @@ class TileStore:
                 try:p.touch()
                 except OSError:pass
                 return stale,''
-            return stale,'Mapa indisponível; verifique a internet.'
+            return stale,'map_unavailable'
         except (OSError,ValueError):
-            return stale,'Sem rede: exibindo apenas o mapa disponível em cache.'
+            return stale,'map_offline'
 
     def close(self):
         self.quit.set()
         with self.lock:self.view.clear()
 
 
-class StationDialog(tk.Toplevel):
-    def __init__(self, parent, station, font, apply):
-        super().__init__(parent)
-        self.title('Localização da estação')
-        self.configure(bg=BG)
-        self.resizable(False,False)
-        self.transient(parent)
-        self.apply_callback = apply
-        self.name = tk.StringVar(value=station.name if station else 'PU2PTU')
-        self.mode = tk.StringVar(value='grid' if station and station.grid else 'coords')
-        self.lat = tk.StringVar(value=f'{station.lat:.6f}' if station else '')
-        self.lon = tk.StringVar(value=f'{station.lon:.6f}' if station else '')
-        self.grid_value = tk.StringVar(value=station.grid if station else '')
-        box = tk.Frame(self,bg=BG,padx=20,pady=16);box.pack()
-        def label(text):
-            tk.Label(box,text=text,bg=BG,fg=FG,font=(font,11),anchor='w').pack(fill='x',pady=(8,3))
-        def entry(var):
-            e = tk.Entry(box,textvariable=var,bg=PANEL,fg=FG,insertbackground=FG,font=(font,12),width=35)
-            e.pack(fill='x',ipady=4)
-            return e
-        label('Nome / indicativo');entry(self.name)
-        for mode,text in [('coords','Coordenadas WGS84 em graus decimais'),('grid','Grid locator (centro da célula)')]:
-            tk.Radiobutton(box,text=text,value=mode,variable=self.mode,command=self.update_mode,
-                           bg=BG,fg=FG,selectcolor=PANEL,activebackground=BG,
-                           activeforeground=FG,font=(font,11)).pack(anchor='w',pady=(10,0))
-        label('Latitude (Sul negativo)');self.lat_entry = entry(self.lat)
-        label('Longitude (Oeste negativo)');self.lon_entry = entry(self.lon)
-        label('Grid de até 6 caracteres — exemplo GG66dr');self.grid_entry = entry(self.grid_value)
-        tk.Label(box,text='Coordenadas limitadas a ±85° de latitude neste mapa.',
-                 bg=BG,fg=MUTED,font=(font,9)).pack(pady=(12,4))
-        buttons = tk.Frame(box,bg=BG);buttons.pack(fill='x',pady=(12,0))
-        tk.Button(buttons,text='Cancelar',command=self.destroy,font=(font,11)).pack(side='left')
-        tk.Button(buttons,text='Aplicar estação',command=self.commit,font=(font,11,'bold')).pack(side='right')
-        self.bind('<Return>',lambda e:self.commit())
-        self.bind('<Escape>',lambda e:self.destroy())
+class StationPanel(tk.Frame):
+    """Configuracao na janela principal; nenhum Toplevel ou grab modal."""
+    def __init__(self, parent, font, translator, apply, cancel):
+        super().__init__(parent, bg=BG, padx=24, pady=16)
+        self.t, self.font = translator, font
+        self.apply_callback, self.cancel_callback = apply, cancel
+        self.localized = []
+        self.name = tk.StringVar()
+        self.mode = tk.StringVar(value='coords')
+        self.lat, self.lon = tk.StringVar(), tk.StringVar()
+        self.grid_value, self.opening_value = tk.StringVar(), tk.StringVar()
+        self.error_text = tk.StringVar()
+        self.last_error = None
+        box = tk.Frame(self, bg=BG)
+        box.pack(fill='both', expand=True)
+        box.columnconfigure(0, weight=1)
+        box.columnconfigure(1, weight=1)
+        def label(key, row, *, color=MUTED, size=11, column=0, span=2):
+            w=tk.Label(box,text=self.t(key),bg=BG,fg=color,font=(font,size),
+                       anchor='w',justify='left',wraplength=650)
+            w.grid(row=row,column=column,columnspan=span,sticky='ew',pady=(7,3))
+            self.localized.append((w,key));return w
+        def entry(var,row,column=0,span=2):
+            w=tk.Entry(box,textvariable=var,bg=PANEL,fg=FG,insertbackground=FG,
+                       relief='flat',font=(font,12),width=20)
+            w.grid(row=row,column=column,columnspan=span,sticky='ew',ipady=6,padx=(0,10))
+            w.bind('<Return>',lambda e:self.commit())
+            return w
+        label('station_title',0,color=FG,size=18)
+        label('station_name',1);self.name_entry=entry(self.name,2)
+        for row,mode,key in ((3,'coords','coords_mode'),(4,'grid','grid_mode')):
+            w=tk.Radiobutton(box,text=self.t(key),variable=self.mode,value=mode,
+                    command=self.update_mode,bg=BG,fg=FG,selectcolor=PANEL,
+                    activebackground=BG,activeforeground=FG,font=(font,11),anchor='w')
+            w.grid(row=row,column=0,columnspan=2,sticky='w',pady=(8,2))
+            self.localized.append((w,key))
+        label('latitude',5,column=0,span=1);label('longitude',5,column=1,span=1)
+        self.lat_entry=entry(self.lat,6,column=0,span=1)
+        self.lon_entry=entry(self.lon,6,column=1,span=1)
+        label('station_grid',7);self.grid_entry=entry(self.grid_value,8)
+        self.grid_entry.configure(validate='key',validatecommand=(self.register(lambda v:len(v)<=6),'%P'))
+        label('latitude_hint',9,size=10)
+        label('beam_label',10,color=FG);self.opening_entry=entry(self.opening_value,11,column=0,span=1)
+        label('beam_hint',12,size=10)
+        tk.Label(box,textvariable=self.error_text,bg=BG,fg='#ff757d',font=(font,10),
+                 anchor='w',justify='left',wraplength=650).grid(row=13,column=0,columnspan=2,sticky='ew',pady=(8,0))
+        buttons=tk.Frame(box,bg=BG);buttons.grid(row=14,column=0,columnspan=2,sticky='ew',pady=(12,0))
+        for key,callback,side in [('cancel',cancel,'left'),('apply_station',self.commit,'right')]:
+            w=tk.Button(buttons,text=self.t(key),command=callback,bg=PANEL if side=='left' else '#23617a',
+                        fg=FG,activebackground='#344c61',activeforeground=FG,
+                        bd=0,padx=12,pady=8,font=(font,11))
+            w.pack(side=side);self.localized.append((w,key))
+
+    def load(self, station, opening):
+        self.name.set(station.name if station else 'PU2PTU')
+        self.mode.set('grid' if station and station.grid else 'coords')
+        self.lat.set(f'{station.lat:.6f}' if station else '')
+        self.lon.set(f'{station.lon:.6f}' if station else '')
+        self.grid_value.set(station.grid if station else '')
+        self.opening_value.set(f'{opening:g}')
+        self.error_text.set('');self.last_error=None
         self.update_mode()
-        self.grab_set()
-        self.focus_set()
+
+    def refresh_language(self):
+        for widget,key in self.localized:widget.configure(text=self.t(key))
+        if self.last_error:self.error_text.set(self.t.error(self.last_error))
 
     def update_mode(self):
-        coords = self.mode.get() == 'coords'
+        coords=self.mode.get()=='coords'
         self.lat_entry.configure(state='normal' if coords else 'disabled')
         self.lon_entry.configure(state='normal' if coords else 'disabled')
         self.grid_entry.configure(state='disabled' if coords else 'normal')
 
     def commit(self):
         try:
-            station = Station.from_values(self.name.get(),self.lat.get(),self.lon.get(),
-                        self.grid_value.get() if self.mode.get() == 'grid' else '')
+            station=Station.from_values(self.name.get(),self.lat.get(),self.lon.get(),
+                         self.grid_value.get() if self.mode.get()=='grid' else '')
+            opening=number(self.opening_value.get(),1,360,'Abertura do feixe')
         except ValueError as exc:
-            messagebox.showerror('Localização',str(exc),parent=self);return
-        self.apply_callback(station)
-        self.destroy()
+            self.last_error=str(exc);self.error_text.set(self.t.error(exc));return False
+        self.last_error=None;self.error_text.set('')
+        self.apply_callback(station,opening)
+        return True
 
 
 class MapPanel(tk.Frame):
-    def __init__(self, parent, font, settings, on_change, on_edit_station, *, tile_store=None):
+    def __init__(self, parent, font, settings, on_change, on_edit_station, *, tile_store=None, translator=None):
         super().__init__(parent,bg=BG,padx=12,pady=14)
-        self.font = font
+        self.font, self.t = font, translator or Translator()
+        self.localized=[]
         self.on_change = on_change
         self.station = settings['station']
         self.opening = settings['opening']
         self.opacity = settings['opacity']
         self.radius = settings['radius']
-        self.target = None
-        self.azimuth = None
+        self.target = self.azimuth = None
         self.zoom = 6.0
         self.tiles = tile_store if tile_store is not None else TileStore()
-        self.photo = None
-        self.base = None
-        self.base_key = None
-        self.last_draw = None
+        self.photo = self.base = self.base_key = self.last_draw = None
         self.last_retry = time.monotonic()
         self.closed = False
         self.dirty = True
@@ -279,63 +309,69 @@ class MapPanel(tk.Frame):
         self.radius_var = tk.StringVar(value=f'{self.radius:g}')
         self.opening_var = tk.StringVar(value=f'{self.opening:g}')
         self.station_text = tk.StringVar()
-        self.state_text = tk.StringVar(value='Aguardando leitura do rotor.')
+        self.state_text = tk.StringVar(value=self.t('map_wait'))
         self.target_text = tk.StringVar(value='')
         self.opacity_var = tk.DoubleVar(value=self.opacity*100)
-        self.opacity_text = tk.StringVar(value=f'Opacidade: {self.opacity*100:.0f}%')
-        self.columnconfigure(0,weight=1)
-        self.rowconfigure(3,weight=1)
-        head = tk.Frame(self,bg=BG);head.grid(row=0,column=0,sticky='ew')
-        tk.Label(head,text='MAPA DE APONTAMENTO',bg=BG,fg=FG,font=(font,15,'bold')).pack(side='left')
-        tk.Button(head,text='Configurar estação',command=on_edit_station,bg=PANEL,fg=FG,
-                  activebackground='#344c61',activeforeground=FG,font=(font,10),bd=0,padx=10,pady=7).pack(side='right')
+        self.opacity_text = tk.StringVar()
+        self.columnconfigure(0,weight=1);self.rowconfigure(3,weight=1)
+        def label(parent,key,**kw):
+            widget=tk.Label(parent,text=self.t(key),bg=BG,fg=MUTED,font=(font,10),**kw)
+            self.localized.append((widget,key));return widget
+        def button(parent,key,callback):
+            widget=tk.Button(parent,text=self.t(key),command=callback,bg=PANEL,fg=FG,
+                  activebackground='#344c61',activeforeground=FG,font=(font,10),bd=0,padx=10,pady=7)
+            self.localized.append((widget,key));return widget
+        head=tk.Frame(self,bg=BG);head.grid(row=0,column=0,sticky='ew')
+        title=label(head,'map_title');title.configure(fg=FG,font=(font,15,'bold'));title.pack(side='left')
+        self.station_button=button(head,'station_settings',on_edit_station);self.station_button.pack(side='right')
         tk.Label(self,textvariable=self.station_text,bg=BG,fg=MUTED,font=(font,10),anchor='w').grid(row=1,column=0,sticky='ew',pady=(5,10))
-        controls = tk.Frame(self,bg=BG);controls.grid(row=2,column=0,sticky='ew',pady=(0,8))
-        def label(text):
-            tk.Label(controls,text=text,bg=BG,fg=MUTED,font=(font,10)).pack(side='left',padx=(0,4))
-        label('Raio (km)')
-        self.radius_combo = ttk.Combobox(controls,textvariable=self.radius_var,width=7,
-                      values=('10','25','50','100','200','400','800','1600'))
-        self.radius_combo.pack(side='left',padx=(0,10))
+        controls=tk.Frame(self,bg=BG);controls.grid(row=2,column=0,sticky='ew',pady=(0,8))
+        label(controls,'radius').pack(side='left',padx=(0,6))
+        self.radius_combo=ttk.Combobox(controls,textvariable=self.radius_var,width=7,
+                        values=('10','25','50','100','200','400','800','1600'))
+        self.radius_combo.pack(side='left',padx=(0,8))
         self.radius_combo.bind('<<ComboboxSelected>>',lambda e:self.apply_scale())
         self.radius_combo.bind('<Return>',lambda e:self.apply_scale())
-        label('Feixe −3 dB (°)')
-        self.opening_entry = tk.Entry(controls,textvariable=self.opening_var,width=5,
-                                     font=(font,11),bg=PANEL,fg=FG,insertbackground=FG)
-        self.opening_entry.pack(side='left',padx=(0,8))
-        self.opening_entry.bind('<Return>',lambda e:self.apply_scale())
-        tk.Button(controls,text='Aplicar',command=self.apply_scale,bg=PANEL,fg=FG,bd=0,
-                  activebackground='#344c61',activeforeground=FG,font=(font,10),padx=8,pady=4).pack(side='left')
-        tk.Button(controls,text='+',command=lambda:self.zoom_by(.5),bg=PANEL,fg=FG,
-                  font=(font,11,'bold'),bd=0,padx=8).pack(side='right',padx=(4,0))
-        tk.Button(controls,text='−',command=lambda:self.zoom_by(2),bg=PANEL,fg=FG,
-                  font=(font,11,'bold'),bd=0,padx=8).pack(side='right')
-        self.canvas = tk.Canvas(self,bg='#edf1ef',width=640,height=430,bd=0,highlightthickness=0)
+        button(controls,'apply',self.apply_scale).pack(side='left')
+        for text,factor in (('+',.5),('−',2)):
+            tk.Button(controls,text=text,command=lambda f=factor:self.zoom_by(f),bg=PANEL,fg=FG,
+                font=(font,11,'bold'),bd=0,padx=8,pady=4).pack(side='right',padx=(4,0))
+        self.canvas=tk.Canvas(self,bg='#edf1ef',width=640,height=430,bd=0,highlightthickness=0)
         self.canvas.grid(row=3,column=0,sticky='nsew')
-        self.image_id = self.canvas.create_image(0,0,anchor='nw')
+        self.image_id=self.canvas.create_image(0,0,anchor='nw')
         self.canvas.bind('<Configure>',lambda e:self.invalidate(True))
         self.canvas.bind('<MouseWheel>',lambda e:self.zoom_by(.5 if e.delta>0 else 2))
         self.canvas.bind('<Button-4>',lambda e:self.zoom_by(.5))
         self.canvas.bind('<Button-5>',lambda e:self.zoom_by(2))
-        footer = tk.Frame(self,bg=BG);footer.grid(row=4,column=0,sticky='ew',pady=(7,0))
+        footer=tk.Frame(self,bg=BG);footer.grid(row=4,column=0,sticky='ew',pady=(7,0))
         tk.Label(footer,textvariable=self.opacity_text,bg=BG,fg=MUTED,font=(font,9)).pack(side='left')
-        tk.Scale(footer,from_=5,to=60,orient='horizontal',variable=self.opacity_var,
+        self.opacity_scale=tk.Scale(footer,from_=5,to=60,orient='horizontal',variable=self.opacity_var,
                  command=self.change_opacity,showvalue=False,length=135,bg=BG,fg=FG,
-                 highlightthickness=0,troughcolor=PANEL,bd=0).pack(side='left',padx=(5,12))
-        tk.Label(footer,text='Abertura total do feixe',bg=BG,fg=MUTED,font=(font,9)).pack(side='left')
-        attribution = tk.Label(footer,text='© OpenStreetMap contributors',bg=BG,fg='#8ccde9',
-                               font=(font,9),cursor='hand2')
+                 highlightthickness=0,troughcolor=PANEL,bd=0)
+        self.opacity_scale.pack(side='left',padx=(5,12))
+        attribution=tk.Label(footer,text='© OpenStreetMap contributors',bg=BG,fg='#8ccde9',font=(font,9),cursor='hand2')
         attribution.pack(side='right')
         attribution.bind('<Button-1>',lambda e:webbrowser.open('https://www.openstreetmap.org/copyright'))
         tk.Label(self,textvariable=self.state_text,bg=BG,fg=MUTED,font=(font,9),anchor='w').grid(row=5,column=0,sticky='ew',pady=(3,0))
         tk.Label(self,textvariable=self.target_text,bg=BG,fg='#ffd375',font=(font,9),anchor='w').grid(row=6,column=0,sticky='ew',pady=(3,0))
+        self.refresh_language()
+        self.timer=self.after(100,self.poll)
+
+    def refresh_language(self):
+        for widget,key in self.localized:widget.configure(text=self.t(key))
+        self.opacity_text.set(self.t('opacity',value=self.opacity*100))
         self.refresh_station_label()
-        self.timer = self.after(100,self.poll)
+        self.invalidate()
+
+    def set_opening(self, opening):
+        self.opening=number(opening,1,360,'Abertura do feixe')
+        self.opening_var.set(f'{self.opening:g}')
+        self.invalidate();self.on_change()
 
     def refresh_station_label(self):
         s = self.station
         self.station_text.set(f'{s.name} · {s.lat:.5f}, {s.lon:.5f}' + (f' · {s.grid}' if s.grid else '')
-                              if s else 'Configure a estação para centralizar o mapa.')
+                              if s else self.t('station_prompt'))
 
     def values(self):
         return {'station':self.station,'radius':self.radius,'opening':self.opening,'opacity':self.opacity}
@@ -350,9 +386,9 @@ class MapPanel(tk.Frame):
     def apply_scale(self):
         try:
             radius = number(self.radius_var.get(),1,3000,'Raio')
-            opening = number(self.opening_var.get(),1,360,'Abertura do feixe')
+            opening = self.opening
         except ValueError as exc:
-            messagebox.showerror('Mapa',str(exc),parent=self);return
+            messagebox.showerror(self.t('map_title'),self.t.error(exc),parent=self);return
         self.radius,self.opening = radius,opening
         self.radius_var.set(f'{radius:g}');self.opening_var.set(f'{opening:g}')
         self.invalidate(True)
@@ -369,7 +405,7 @@ class MapPanel(tk.Frame):
         try:opacity = float(value)/100
         except ValueError:return
         self.opacity = max(.05,min(.6,opacity))
-        self.opacity_text.set(f'Opacidade: {self.opacity*100:.0f}%')
+        self.opacity_text.set(self.t('opacity',value=self.opacity*100))
         self.invalidate()
         self.on_change()
 
@@ -440,10 +476,10 @@ class MapPanel(tk.Frame):
         self.canvas.delete('annotation')
         if self.station is None:
             image = Image.new('RGB',(w,h),'#e8efed')
-            self.canvas.create_text(w/2,h/2,text='Configure a localização da estação\npara abrir o mapa.',
+            self.canvas.create_text(w/2,h/2,text=self.t('map_no_station'),
                       justify='center',font=(self.font,15),fill='#435b63',tags='annotation')
-            self.state_text.set('Estação no centro · Norte para cima · escala ajustável')
-            self.target_text.set('Feixe a −3 dB: largura total no plano horizontal.')
+            self.state_text.set(self.t('station_prompt'))
+            self.target_text.set(self.t('beam_label'))
         else:
             image = self.basemap(w,h).convert('RGBA')
             overlay = Image.new('RGBA',(w,h),(0,0,0,0));draw = ImageDraw.Draw(overlay)
@@ -469,8 +505,8 @@ class MapPanel(tk.Frame):
                 if visible:
                     self.canvas.create_oval(x-5,y-5,x+5,y+5,fill='#ffa43c',outline='#553000',width=2,tags='annotation')
                     self.canvas.create_text(x+10,y-10,text=grid,anchor='w',fill='#663300',font=(self.font,11,'bold'),tags='annotation')
-                self.target_text.set(f'Destino: {grid} · {bearing:.1f}° · {km:.1f} km'+(' · fora da vista' if not visible else ''))
-            else:self.target_text.set('Cone = direção e abertura do feixe; extensão gráfica não indica alcance.')
+                self.target_text.set(self.t('map_target',grid=grid,bearing=bearing,distance=km))
+            else:self.target_text.set(self.t('beam_label'))
             self.canvas.create_oval(w/2-6,h/2-6,w/2+6,h/2+6,fill='#07596f',outline='white',width=2,tags='annotation')
             self.canvas.create_text(w/2+11,h/2+13,text=self.station.name,anchor='w',fill='#13383e',font=(self.font,10,'bold'),tags='annotation')
             self.canvas.create_text(20,20,text='N ↑',fill='#153b43',font=(self.font,15,'bold'),tags='annotation')
@@ -485,10 +521,10 @@ class MapPanel(tk.Frame):
             self.canvas.create_rectangle(10,h-43,145,h-8,fill='white',outline='',tags='annotation')
             self.canvas.create_line(20,h-18,20+length,h-18,fill='#203c40',width=3,tags='annotation')
             self.canvas.create_text(20,h-30,text=f'{nice:g} km',anchor='w',fill='#203c40',font=(self.font,10),tags='annotation')
-            heading = f'Antena: {self.azimuth:.1f}°' if self.azimuth is not None else 'Aguardando telemetria — cone oculto'
-            self.state_text.set(f'{heading} · feixe {self.opening:g}° · raio {self.radius:g} km')
+            heading = self.t('map_heading',angle=self.azimuth) if self.azimuth is not None else self.t('cone_hidden')
+            self.state_text.set(self.t('map_state',heading=heading,opening=self.opening,radius=self.radius))
             if self.missing:
-                self.state_text.set(self.state_text.get()+' · '+(self.tiles.problem or 'Carregando mapa…'))
+                self.state_text.set(self.state_text.get()+' · '+self.t(self.tiles.problem or 'loading_map'))
         self.photo = ImageTk.PhotoImage(image,master=self.canvas)
         self.canvas.itemconfigure(self.image_id,image=self.photo)
         self.canvas.tag_lower(self.image_id)
